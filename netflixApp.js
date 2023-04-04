@@ -1,67 +1,50 @@
+require('dotenv').config()
 const fetch = (...args) =>
-import('node-fetch').then(({default: fetch}) => fetch(...args));
-const axios = require("axios")
+    import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
+const mongoose = require('mongoose')
 const express = require('express')
+
+const appRoutes = require('./routes/app.routes.js')
+const axios = require('axios'),
+    Person = require('./models/people.model'),
+    cookieParser = require('cookie-parser')
+
+
+
+
 const app = express()
 
 app.set('view engine', 'ejs');
 app.use(express.json());
 app.use(express.static('./public'));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser())
 
 
-const tvShowAPI ="https://www.episodate.com/api/most-popular",
-searchAPI ="https://www.episodate.com/api/search",
-detailsAPI ="https://www.episodate.com/api/show-details"
+DB_URL = process.env.DB_URL,
+    PORT = process.env.PORT || 4000
+const SECRET = process.env.SECRET
 
 
-app.get("/", async (req,res)=>{
-  
-    let { page } = req.query;
-
+async function main() {
     try {
-        if (typeof page === 'undefined' || page < 1) {
-            page = 1;
-        }
+        console.log('connecting to DB')
+        await mongoose.connect(DB_URL)
+        console.log('connected successfully');
 
-        const resp = await axios.get(tvShowAPI + `?page=${page}`);
-        
-        res.render('movies', { movies: resp.data });
+        app.use('/', appRoutes)
+
 
     } catch (error) {
-        console.log(error)
-        res.status(500).json({Error_message:'Bad request'})
+        console.log(error);
     }
-})
 
-app.get('/movie', async (req,res)=>{
-let {id} = req.query
 
-try {
-const response = await axios.get(detailsAPI + `?q=${id}`)
-const data = response.data
-    res.render('movie', {movie : data.tvShow})
-} catch (error) {
-    res.status(500).json({Error_message:'Bad request'})
+
+    app.listen(PORT, () => {
+        console.log(`App is live at https://localhost:${PORT}`)
+    })
 }
-})
 
-app.get('/search',async(req,res)=>{
-let {q,page}= req.query
-
-    try {
-const response = await axios.get(searchAPI +`?q=${q}&page=${page}`)
-const data = response.data
-
-
-res.json({page: Number(page), movies :data.tv_shows})
-    } catch (error) {
-        res.status(500).json({ message: "An error occured" }); 
-    }
-})
-
-
-app.listen(4000, () => {
-    console.log(`App is live at https://localhost:4000`)
-})
+main()
